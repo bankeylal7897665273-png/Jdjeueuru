@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emote Bot Control Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; height: 100vh; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        
+        /* Navbar & Hamburger */
+        .topbar { display: none; background-color: #1e293b; padding: 15px; border-bottom: 1px solid #334155; align-items: center; justify-content: space-between; }
+        .hamburger { font-size: 24px; cursor: pointer; color: #38bdf8; background: none; border: none; }
+        
+        /* Sidebar Styles */
+        .sidebar { width: 250px; background-color: #1e293b; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #334155; transition: transform 0.3s ease; }
+        .sidebar h2 { color: #38bdf8; margin-bottom: 30px; font-size: 20px; text-align: center; letter-spacing: 1px; }
+        .nav-btn { background: none; border: none; color: #cbd5e1; padding: 15px; text-align: left; font-size: 16px; cursor: pointer; border-radius: 8px; margin-bottom: 10px; transition: 0.3s; }
+        .nav-btn:hover, .nav-btn.active { background-color: #38bdf8; color: #0f172a; font-weight: bold; }
+
+        /* Main Content */
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; position: relative; }
+        
+        /* Status Cards */
+        .status-cards { display: flex; gap: 15px; flex-wrap: wrap; }
+        .card { flex: 1; min-width: 120px; background-color: #1e293b; padding: 20px; border-radius: 10px; text-align: center; border: 1px solid #334155; }
+        .card h3 { color: #94a3b8; font-size: 12px; text-transform: uppercase; margin-bottom: 10px; }
+        .card p { font-size: 24px; font-weight: bold; }
+        .text-green { color: #22c55e; }
+        .text-yellow { color: #eab308; }
+        .text-red { color: #ef4444; }
+
+        /* Form Section */
+        .form-section { background-color: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #334155; }
+        .form-section h3 { margin-bottom: 15px; color: #f8fafc; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; }
+        .input-group input { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #475569; background-color: #0f172a; color: white; outline: none; transition: 0.3s; }
+        .input-group input:focus { border-color: #38bdf8; }
+        .start-btn { width: 100%; padding: 12px; background-color: #22c55e; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .start-btn:hover { background-color: #16a34a; }
+
+        /* Active Bots List */
+        .active-bots { background-color: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #334155; display: none; }
+        .bot-item { background: #0f172a; padding: 15px; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #38bdf8; }
+        .api-link { color: #38bdf8; font-family: monospace; background: #000; padding: 5px; border-radius: 4px; display: block; margin-top: 5px; word-wrap: break-word;}
+
+        /* Terminal/Log Box */
+        .terminal-box { background-color: #000; flex: 1; min-height: 250px; border-radius: 10px; padding: 15px; border: 1px solid #334155; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 13px; }
+        .terminal-header { color: #38bdf8; margin-bottom: 10px; font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+        .log-line { margin-bottom: 5px; color: #a3bea3; line-height: 1.4; }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .topbar { display: flex; }
+            .sidebar { position: fixed; height: 100%; z-index: 1000; transform: translateX(-100%); width: 250px; }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <h2 style="color: #38bdf8; font-size: 18px;">EMOTE PANEL</h2>
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <h2>EMOTE PANEL</h2>
+        <button class="nav-btn active" onclick="switchTab('home')">🏠 Dashboard Home</button>
+        <button class="nav-btn" onclick="switchTab('active')">⚡ Active Accounts</button>
+        <button class="nav-btn" style="color: #ef4444;" onclick="toggleSidebar()">✖ Close Menu</button>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="home-tab">
+            <div class="status-cards">
+                <div class="card">
+                    <h3>Active Bots</h3>
+                    <p class="text-green" id="active-count">0</p>
+                </div>
+                <div class="card">
+                    <h3>Failed Tasks</h3>
+                    <p class="text-red" id="failed-count">0</p>
+                </div>
+            </div>
+
+            <div class="form-section" style="margin-top: 20px;">
+                <h3>Start New Bot Session</h3>
+                <div class="input-group">
+                    <label>Player UID</label>
+                    <input type="text" id="botUid" placeholder="Enter Target UID (e.g., 4486408334)" required>
+                </div>
+                <div class="input-group">
+                    <label>Access Password / Token</label>
+                    <input type="password" id="botPass" placeholder="Enter Access Password/Hex" required>
+                </div>
+                <button class="start-btn" onclick="startBot()">🚀 Initialize & Host Bot</button>
+            </div>
+        </div>
+
+        <div class="active-bots" id="active-tab">
+            <h3 style="color: #f8fafc; margin-bottom: 15px;">Live Hosted Accounts & APIs</h3>
+            <div id="bots-list">
+                <p style="color: #94a3b8; font-size: 14px;">No active bots currently running.</p>
+            </div>
+        </div>
+
+        <div class="terminal-box" id="terminal">
+            <div class="terminal-header">Server Console Logs [System Connected...]</div>
+        </div>
+
+    </div>
+
+    <script>
+        // Sidebar Toggle
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // Tab Switcher
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if(tab === 'home') {
+                document.getElementById('home-tab').style.display = 'block';
+                document.getElementById('active-tab').style.display = 'none';
+            } else if(tab === 'active') {
+                document.getElementById('home-tab').style.display = 'none';
+                document.getElementById('active-tab').style.display = 'block';
+                fetchActiveBots();
+            }
+            if(window.innerWidth <= 768) toggleSidebar();
+        }
+
+        // Start Bot Logic
+        function startBot() {
+            const uid = document.getElementById('botUid').value;
+            const pass = document.getElementById('botPass').value;
+
+            if(!uid || !pass) {
+                alert('Error: UID and Password are required!');
+                return;
+            }
+
+            fetch('/api/start_bot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: uid, password: pass })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                document.getElementById('botUid').value = '';
+                document.getElementById('botPass').value = '';
+            });
+        }
+
+        // Fetch Logs and Update Stats
+        setInterval(() => {
+            fetch('/api/logs')
+                .then(res => res.json())
+                .then(data => {
+                    // Update Stats
+                    document.getElementById('active-count').innerText = data.active;
+                    document.getElementById('failed-count').innerText = data.failed;
+                    
+                    // Update Terminal
+                    const terminal = document.getElementById('terminal');
+                    terminal.innerHTML = '<div class="terminal-header">Server Console Logs [System Connected...]</div>';
+                    data.logs.forEach(log => {
+                        const div = document.createElement('div');
+                        div.className = 'log-line';
+                        div.textContent = log;
+                        terminal.appendChild(div);
+                    });
+                    terminal.scrollTop = terminal.scrollHeight;
+                }).catch(e => console.log("Waiting for backend..."));
+        }, 2000);
+
+        // Fetch Active Bots for the API tab
+        function fetchActiveBots() {
+            fetch('/api/active_bots')
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('bots-list');
+                list.innerHTML = '';
+                if(data.bots.length === 0) {
+                    list.innerHTML = '<p style="color: #94a3b8;">No active bots currently running.</p>';
+                    return;
+                }
+                data.bots.forEach(bot => {
+                    const baseUrl = window.location.origin;
+                    // Custom API route structure for this specific bot
+                    const apiLink = `${baseUrl}/join?target_bot=${bot.uid}&tc=TEAMCODE&emote_id=ID&uid1=PLAYER_UID`;
+                    
+                    list.innerHTML += `
+                        <div class="bot-item">
+                            <strong style="color: white;">Bot UID: ${bot.uid}</strong> | Status: <span class="text-green">Live</span>
+                            <br><br>
+                            <span style="color: #94a3b8; font-size: 13px;">Use this API to trigger emotes from this bot:</span>
+                            <span class="api-link">${apiLink}</span>
+                        </div>
+                    `;
+                });
+            });
+        }
+    </script>
+</body>
+</html>
